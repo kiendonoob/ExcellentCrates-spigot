@@ -1,5 +1,6 @@
 package su.nightexpress.excellentcrates.crate;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
@@ -61,16 +62,17 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class CrateManager extends AbstractManager<CratesPlugin> {
 
     private final DialogRegistry dialogs;
 
-    private final Map<String, Rarity>      rarityByIdMap;
-    private final Map<String, Crate>       crateByIdMap;
-    private final Map<WorldPos, Crate>     crateByPosMap;
+    private final Map<String, Rarity>       rarityByIdMap;
+    private final Map<String, Crate>        crateByIdMap;
+    private final Map<WorldPos, Crate>      crateByPosMap;
     private final Map<String, PreviewMenu> previewByIdMap;
-    private final Map<UUID, Long>          previewCooldown;
+    private final Map<UUID, Long>           previewCooldown;
 
     private OpeningCostMenu   costMenu;
     private OpeningAmountMenu amountMenu;
@@ -96,10 +98,17 @@ public class CrateManager extends AbstractManager<CratesPlugin> {
         this.loadCrates();
         this.loadUI();
         this.loadDialogs();
-        this.plugin.runTask(task -> this.reportProblems()); // After everything is loaded.
+        
+        // [Folia Fix]: Thay thế plugin.runTask bằng GlobalRegionScheduler để tránh lỗi UnsupportedOperationException
+        Bukkit.getGlobalRegionScheduler().run(this.plugin, task -> this.reportProblems()); // After everything is loaded.
 
         this.addListener(new CrateListener(this.plugin, this));
 
+        // [Folia Fix]: Các hàm lặp liên tục cũng nên chuyển sang Folia Scheduler nếu báo lỗi.
+        // Tạm thời mình vẫn để addAsyncTask của NightCore, nhưng nếu console báo lỗi dòng này,
+        // bạn thay thế 2 dòng addAsyncTask dưới bằng:
+        // Bukkit.getAsyncScheduler().runAtFixedRate(this.plugin, task -> this.playCrateEffects(), 50L, 50L, TimeUnit.MILLISECONDS);
+        // Bukkit.getAsyncScheduler().runAtFixedRate(this.plugin, task -> this.saveCrates(), Config.CRATE_SAVE_INTERVAL.get() * 50L, Config.CRATE_SAVE_INTERVAL.get() * 50L, TimeUnit.MILLISECONDS);
         this.addAsyncTask(this::playCrateEffects, 1L);
         this.addAsyncTask(this::saveCrates, Config.CRATE_SAVE_INTERVAL.get());
     }

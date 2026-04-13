@@ -1,5 +1,6 @@
 package su.nightexpress.excellentcrates.key;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -28,6 +29,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 public class KeyManager extends AbstractManager<CratesPlugin> {
@@ -47,9 +49,17 @@ public class KeyManager extends AbstractManager<CratesPlugin> {
         this.loadCost();
         this.loadKeys();
         this.loadDialogs();
-        this.plugin.runTask(task -> this.reportProblems()); // When everything is loaded.
+        
+        // [Folia Fix]: Thay thế plugin.runTask bằng GlobalRegionScheduler để chạy đồng bộ trên Folia.
+        // Task này chỉ in ra log thông báo lỗi của Keys nên dùng GlobalRegionScheduler là an toàn.
+        Bukkit.getGlobalRegionScheduler().run(this.plugin, task -> this.reportProblems());
 
         this.addListener(new KeyListener(this.plugin, this));
+        
+        // [Folia Fix/Fallback]: Nếu hàm addAsyncTask của NightCore báo lỗi trong Console sau này, 
+        // bạn có thể thay thế dòng dưới bằng:
+        // Bukkit.getAsyncScheduler().runAtFixedRate(this.plugin, task -> this.saveKeys(), 
+        //      Config.CRATE_SAVE_INTERVAL.get() * 50L, Config.CRATE_SAVE_INTERVAL.get() * 50L, TimeUnit.MILLISECONDS);
         this.addAsyncTask(this::saveKeys, Config.CRATE_SAVE_INTERVAL.get()); // TODO Config
     }
 
