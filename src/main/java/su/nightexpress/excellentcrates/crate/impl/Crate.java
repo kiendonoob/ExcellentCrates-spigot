@@ -222,16 +222,15 @@ public class Crate implements ConfigBacked {
         this.blockPositions.addAll(config.getStringList("Block.Positions").stream().map(WorldPos::deserialize).toList());
         if (!Config.isCrateInAirBlocksAllowed()) {
             this.blockPositions.removeIf(pos -> {
-                org.bukkit.World world = org.bukkit.Bukkit.getWorld(pos.worldId());
+                // Sử dụng getWorldName() thay vì worldId()
+                org.bukkit.World world = org.bukkit.Bukkit.getWorld(pos.getWorldName());
                 if (world == null) return false;
                 
-                // [Folia Fix] Chỉ kiểm tra khối nếu chunk chứa khối đó ĐÃ ĐƯỢC LOAD trên máy chủ.
-                // Nếu chunk chưa load, việc gọi getBlock()/isEmpty() sẽ ép server load chunk 
-                // một cách bất đồng bộ và gây ra lỗi "Cannot read world asynchronously".
-                int chunkX = pos.x() >> 4;
-                int chunkZ = pos.z() >> 4;
+                // Sử dụng getX() và getZ() thay vì x() và z()
+                int chunkX = pos.getX() >> 4;
+                int chunkZ = pos.getZ() >> 4;
                 if (!world.isChunkLoaded(chunkX, chunkZ)) {
-                    return false; // Giữ lại vị trí này, không xóa
+                    return false; // Giữ lại vị trí này nếu chunk chưa được load
                 }
                 
                 Block block = pos.toBlock();
