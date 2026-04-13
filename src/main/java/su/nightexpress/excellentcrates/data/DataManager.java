@@ -1,5 +1,6 @@
 package su.nightexpress.excellentcrates.data;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -34,8 +35,12 @@ public class DataManager extends AbstractManager<CratesPlugin> {
 
     @Override
     protected void onLoad() {
-        this.plugin.runTaskAsync(task -> this.loadData());
+        // [Folia Fix]: Thay thế plugin.runTaskAsync bằng Folia AsyncScheduler
+        Bukkit.getAsyncScheduler().runNow(this.plugin, task -> this.loadData());
 
+        // Lưu ý: Các hàm addAsyncTask() của NightCore AbstractManager có thể cũng gọi Bukkit Scheduler cũ.
+        // Nếu sau khi sửa file này mà server vẫn báo lỗi ở hàm addAsyncTask, bạn có thể cần sửa tiếp 
+        // ở bên NightCore hoặc thay thế bằng Bukkit.getAsyncScheduler().runAtFixedRate(...) tại đây.
         this.addAsyncTask(this::saveCrateDatas, Config.DATA_CRATE_DATA_SAVE_INTERVAL.get());
         this.addAsyncTask(this::saveRewardLimits, Config.DATA_REWARD_LIMITS_SAVE_INTERVAL.get());
     }
@@ -100,8 +105,6 @@ public class DataManager extends AbstractManager<CratesPlugin> {
         //this.plugin.debug("Loaded " + this.rewardLimitMap.size() + " reward limit datas.");
     }
 
-
-
     public void handleSynchronization() {
         if (!this.isDataLoaded()) return;
 
@@ -128,8 +131,6 @@ public class DataManager extends AbstractManager<CratesPlugin> {
         }
     }
 
-
-
     public boolean isDataLoaded() {
         return this.dataLoaded;
     }
@@ -150,17 +151,17 @@ public class DataManager extends AbstractManager<CratesPlugin> {
         if (data != null) return data;
 
         GlobalCrateData fresh = GlobalCrateData.create(crate);
-        this.plugin.runTaskAsync(task -> this.plugin.getDataHandler().insertCrateData(fresh));
+        // [Folia Fix]
+        Bukkit.getAsyncScheduler().runNow(this.plugin, task -> this.plugin.getDataHandler().insertCrateData(fresh));
         this.crateDataMap.put(fresh.getCrateId(), fresh);
         return fresh;
     }
 
     public void deleteCrateData(@NotNull Crate crate) {
-        this.plugin.runTaskAsync(task -> this.plugin.getDataHandler().deleteCrateData(crate));
+        // [Folia Fix]
+        Bukkit.getAsyncScheduler().runNow(this.plugin, task -> this.plugin.getDataHandler().deleteCrateData(crate));
         this.crateDataMap.remove(crate.getId());
     }
-
-
 
     @NotNull
     public RewardData getRewardLimitOrCreate(@NotNull Reward reward, @Nullable Player player) {
@@ -168,7 +169,8 @@ public class DataManager extends AbstractManager<CratesPlugin> {
         if (limit != null) return limit;
 
         RewardData fresh = RewardData.create(reward, player);
-        this.plugin.runTaskAsync(task -> this.plugin.getDataHandler().insertRewardLimit(fresh));
+        // [Folia Fix]
+        Bukkit.getAsyncScheduler().runNow(this.plugin, task -> this.plugin.getDataHandler().insertRewardLimit(fresh));
         this.addRewardLimit(fresh);
         return fresh;
     }
@@ -190,14 +192,16 @@ public class DataManager extends AbstractManager<CratesPlugin> {
     }
 
     public void deleteRewardLimit(@NotNull RewardData limit) {
-        this.plugin.runTaskAsync(task -> this.plugin.getDataHandler().deleteRewardLimit(limit));
+        // [Folia Fix]
+        Bukkit.getAsyncScheduler().runNow(this.plugin, task -> this.plugin.getDataHandler().deleteRewardLimit(limit));
         this.rewardLimitMap.remove(getRewardKey(limit));
     }
 
     public void deleteRewardLimits(@NotNull Crate crate) {
         String crateId = crate.getId();
 
-        this.plugin.runTaskAsync(task -> this.plugin.getDataHandler().deleteRewardLimits(crate));
+        // [Folia Fix]
+        Bukkit.getAsyncScheduler().runNow(this.plugin, task -> this.plugin.getDataHandler().deleteRewardLimits(crate));
         this.rewardLimitMap.keySet().removeIf(key -> key.crateId().equalsIgnoreCase(crateId));
     }
 
@@ -205,18 +209,18 @@ public class DataManager extends AbstractManager<CratesPlugin> {
         String crateId = reward.getCrate().getId();
         String rewardId = reward.getId();
 
-        this.plugin.runTaskAsync(task -> this.plugin.getDataHandler().deleteRewardLimits(reward));
+        // [Folia Fix]
+        Bukkit.getAsyncScheduler().runNow(this.plugin, task -> this.plugin.getDataHandler().deleteRewardLimits(reward));
         this.rewardLimitMap.keySet().removeIf(key -> key.crateId().equalsIgnoreCase(crateId) && key.rewardId().equalsIgnoreCase(rewardId));
     }
 
     public void deleteRewardLimits(@NotNull UUID playerId) {
         String holder = playerId.toString();
 
-        this.plugin.runTaskAsync(task -> this.plugin.getDataHandler().deleteRewardLimits(playerId));
+        // [Folia Fix]
+        Bukkit.getAsyncScheduler().runNow(this.plugin, task -> this.plugin.getDataHandler().deleteRewardLimits(playerId));
         this.rewardLimitMap.keySet().removeIf(key -> key.holder().equalsIgnoreCase(holder));
     }
-
-
 
     @NotNull
     public static String getHolder(@NotNull Reward reward, @Nullable Player player) {
