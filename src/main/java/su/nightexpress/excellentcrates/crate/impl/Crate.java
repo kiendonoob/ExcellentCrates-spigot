@@ -220,23 +220,6 @@ public class Crate implements ConfigBacked {
         });
 
         this.blockPositions.addAll(config.getStringList("Block.Positions").stream().map(WorldPos::deserialize).toList());
-        if (!Config.isCrateInAirBlocksAllowed()) {
-            this.blockPositions.removeIf(pos -> {
-                // Sử dụng getWorldName() thay vì worldId()
-                org.bukkit.World world = org.bukkit.Bukkit.getWorld(pos.getWorldName());
-                if (world == null) return false;
-                
-                // Sử dụng getX() và getZ() thay vì x() và z()
-                int chunkX = pos.getX() >> 4;
-                int chunkZ = pos.getZ() >> 4;
-                if (!world.isChunkLoaded(chunkX, chunkZ)) {
-                    return false; // Giữ lại vị trí này nếu chunk chưa được load
-                }
-                
-                Block block = pos.toBlock();
-                return block != null && block.isEmpty();
-            });
-        }
 
         this.setPushbackEnabled(config.getBoolean("Block.Pushback.Enabled"));
         this.setHologramEnabled(config.getBoolean("Block.Hologram.Enabled"));
